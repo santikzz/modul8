@@ -26,3 +26,5 @@ Win32/
 build/
 CMakeCache.txt
 CMakeFiles/
+guitarpedal/
+modul8/

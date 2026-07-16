@@ -87,6 +87,8 @@ public:
 
   const char* name() const override { return name_.c_str(); }
 
+  const char* banner() const override { return banner_.empty() ? nullptr : banner_.c_str(); }
+
 private:
   // a knob backed by the atomic the ui writes; heap-allocated so the pointer
   // handed to Effect::param() stays stable while the vector grows.
@@ -200,6 +202,10 @@ private:
     name_ = lua_tostring(L_, -1);
     lua_pop(L_, 1);
 
+    lua_getglobal(L_, "banner");
+    if (lua_isstring(L_, -1)) banner_ = lua_tostring(L_, -1);
+    lua_pop(L_, 1);
+
     lua_getglobal(L_, "process");
     bool hasProcess = lua_isfunction(L_, -1);
     lua_pop(L_, 1);
@@ -233,6 +239,7 @@ private:
 
   std::string path_;
   std::string name_;
+  std::string banner_;
   std::string loadError_;
   lua_State* L_ = nullptr;
   bool failed_ = false;
@@ -244,8 +251,17 @@ private:
 }  // namespace
 
 std::string dir() {
-  ::CreateDirectoryA(kFolder, nullptr);  // no-op if it already exists
-  return kFolder;
+  // resolved once: <exe folder>\effects, independent of the working directory.
+  static const std::string path = [] {
+    char exe[MAX_PATH] = {};
+    ::GetModuleFileNameA(nullptr, exe, MAX_PATH);
+    std::string p(exe);
+    size_t slash = p.find_last_of("\\/");
+    if (slash != std::string::npos) p.erase(slash);
+    return p + "\\" + kFolder;
+  }();
+  ::CreateDirectoryA(path.c_str(), nullptr);  // no-op if it already exists
+  return path;
 }
 
 std::vector<std::string> registerAll() {
@@ -257,13 +273,14 @@ std::vector<std::string> registerAll() {
 
   std::vector<std::string> errors;
   std::set<std::string> seen;  // names claimed earlier in this same scan
-  std::string pattern = dir() + "\\*.lua";
+  std::string base = dir();
+  std::string pattern = base + "\\*.lua";
   WIN32_FIND_DATAA fd;
   HANDLE h = ::FindFirstFileA(pattern.c_str(), &fd);
   if (h == INVALID_HANDLE_VALUE) return errors;
   do {
     if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) continue;
-    std::string path = std::string(kFolder) + "\\" + fd.cFileName;
+    std::string path = base + "\\" + fd.cFileName;
 
     // load once now to validate the script and learn its registry name.
     LuaEffect probe(path);

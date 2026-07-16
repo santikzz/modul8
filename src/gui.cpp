@@ -741,6 +741,8 @@ struct UiState {
   float inVol = 1.0f;
   float outVol = 1.0f;
   bool bypassAll = false;
+  float vuLevel[2] = {0.0f, 0.0f};  // smoothed meter position per channel, 0..1
+  float vuClip[2] = {0.0f, 0.0f};   // seconds the red clip segments stay latched
   char addSearch[64] = "";     // add-effect dialog filter text
   std::string addSelected;     // effect name highlighted in the dialog
   std::string status;
@@ -802,9 +804,14 @@ void drawTitleBar(ImVec2 pos, float w) {
   bool active = ::GetForegroundWindow() == g_hwnd;
   if (!active) dl->AddRectFilled(a, b, w98::kGray);
 
-  w98::appIcon(dl, ImVec2(a.x + 4, a.y + (w98::kCaption - 14) * 0.5f));
+  ImVec2 icoPos(a.x + 4, a.y + (w98::kCaption - 14) * 0.5f);
+  const icons::Banner& appIco = icons::banner("assets/icon.jpg");
+  if (appIco.tex)
+    dl->AddImage(appIco.tex, icoPos, ImVec2(icoPos.x + 14, icoPos.y + 14));
+  else
+    w98::appIcon(dl, icoPos);
   float textY = a.y + (w98::kCaption - ImGui::GetTextLineHeight()) * 0.5f;
-  dl->AddText(ImVec2(a.x + 22, textY), w98::kCapText, "guitarpedal");
+  dl->AddText(ImVec2(a.x + 22, textY), w98::kCapText, "Modul8");
 
   const float bw = 16.0f, bh = 14.0f;
   float by = capTop + (w98::kCaption - bh) * 0.5f;
@@ -920,19 +927,41 @@ void drawSettings(AudioEngine& engine, UiState& ui) {
   endWindow98();
 }
 
+// classic navy hyperlink: underlined text that opens the url in the default browser.
+void linkText(const char* url) {
+  ImGui::PushStyleColor(ImGuiCol_Text, w98::kNavy);
+  ImGui::TextUnformatted(url);
+  ImGui::PopStyleColor();
+  ImVec2 mn = ImGui::GetItemRectMin(), mx = ImGui::GetItemRectMax();
+  ImGui::GetWindowDrawList()->AddLine(ImVec2(mn.x, mx.y - 1), ImVec2(mx.x, mx.y - 1),
+                                      w98::kNavy);
+  if (ImGui::IsItemHovered()) {
+    ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+      ::ShellExecuteA(nullptr, "open", url, nullptr, nullptr, SW_SHOWNORMAL);
+  }
+}
+
 void drawAbout(UiState& ui) {
   const ImGuiViewport* vp = ImGui::GetMainViewport();
   ImGui::SetNextWindowPos(ImVec2(vp->Pos.x + vp->Size.x * 0.5f, vp->Pos.y + vp->Size.y * 0.5f),
                           ImGuiCond_FirstUseEver, ImVec2(0.5f, 0.5f));
-  if (!beginWindow98("About guitarpedal", &ui.showAbout, ImVec2(280, 140))) return;
+  if (!beginWindow98("About Modul8", &ui.showAbout, ImVec2(280, 200))) return;
 
   ImDrawList* dl = ImGui::GetWindowDrawList();
   ImVec2 pos = ImGui::GetCursorScreenPos();
-  w98::appIcon(dl, pos);
-  dl->AddText(ImVec2(pos.x + 22, pos.y), w98::kBlack, "guitarpedal");
+  const icons::Banner& appIco = icons::banner("assets/icon.jpg");
+  if (appIco.tex)
+    dl->AddImage(appIco.tex, pos, ImVec2(pos.x + 14, pos.y + 14));
+  else
+    w98::appIcon(dl, pos);
+  dl->AddText(ImVec2(pos.x + 22, pos.y), w98::kBlack, "Modul8");
   ImGui::Dummy(ImVec2(1, ImGui::GetTextLineHeight() + 4.0f));
   ImGui::TextUnformatted("real-time guitar effects host");
   ImGui::TextUnformatted("version 1.0");
+  ImGui::TextUnformatted("created by santikz");
+  linkText("https://github.com/santikzz");
+  linkText("https://github.com/santikzz/modul8");
   w98::separator();
 
   const float okW = 75.0f;
@@ -1020,13 +1049,13 @@ void drawMenuBar(ImVec2 pos, float w, UiState& ui) {
   ImVec2 b(pos.x + w - f, a.y + w98::kMenuBar);
   dl->AddRectFilled(a, b, w98::kFace);
 
-  const char* labels[3] = {"File", "Settings", "About"};
+  const char* labels[4] = {"File", "Effects", "Settings", "About"};
   bool anyOpen = false;
   for (const char* l : labels)
     if (ImGui::IsPopupOpen(l)) anyOpen = true;
 
   float x = a.x + 1.0f;
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < 4; i++) {
     ImVec2 ts = ImGui::CalcTextSize(labels[i]);
     float itemW = ts.x + 14.0f;
     ImGui::SetCursorScreenPos(ImVec2(x, a.y + 1.0f));
@@ -1056,6 +1085,9 @@ void drawMenuBar(ImVec2 pos, float w, UiState& ui) {
       w98::raised(pdl, wp, ImVec2(wp.x + ws.x, wp.y + ws.y));
       switch (i) {
         case 0:
+          if (w98::menuItem("Close")) ::PostMessage(g_hwnd, WM_CLOSE, 0, 0);
+          break;
+        case 1:
           if (w98::menuItem("Reload Lua Effects")) {
             auto errors = luafx::registerAll();
             ui.available = Registry::names();
@@ -1065,13 +1097,12 @@ void drawMenuBar(ImVec2 pos, float w, UiState& ui) {
           }
           if (w98::menuItem("Open Effects Folder"))
             ::ShellExecuteA(nullptr, "open", luafx::dir().c_str(), nullptr, nullptr, SW_SHOWNORMAL);
-          if (w98::menuItem("Close")) ::PostMessage(g_hwnd, WM_CLOSE, 0, 0);
-          break;
-        case 1:
-          if (w98::menuItem("Manage settings...")) ui.showSettings = true;
           break;
         case 2:
-          if (w98::menuItem("About guitarpedal...")) ui.showAbout = true;
+          if (w98::menuItem("Manage settings...")) ui.showSettings = true;
+          break;
+        case 3:
+          if (w98::menuItem("About Modul8...")) ui.showAbout = true;
           break;
       }
       ImGui::EndPopup();
@@ -1090,9 +1121,22 @@ const float kPortR = 5.0f;
 
 float paramRowH(const Param& p) { return p.kind == Param::Bool ? 20.0f : 44.0f; }
 
+// height of the framed banner image block, 0 when the node has none. the image
+// spans the same inner width as the param widgets, keeps its aspect ratio, and
+// sits inside a 2px sunken bevel like a classic picture control.
+float bannerFrameH(const GraphNode* n) {
+  if (n->isIo() || !n->fx->banner()) return 0.0f;
+  const icons::Banner& img = icons::banner(n->fx->banner());
+  if (!img.tex || img.w <= 0) return 0.0f;
+  float innerW = kNodeW - 14.0f - 4.0f;
+  return innerW * (float)img.h / (float)img.w + 4.0f;
+}
+
 float nodeHeight(const GraphNode* n) {
   if (n->isIo()) return 40.0f;
   float h = kTitleH + 8.0f;
+  float bh = bannerFrameH(n);
+  if (bh > 0.0f) h += bh + 4.0f;
   for (auto& p : n->fx->params()) h += paramRowH(p);
   return h < kTitleH + 24.0f ? kTitleH + 24.0f : h;
 }
@@ -1175,9 +1219,23 @@ void drawNode(AudioEngine& engine, UiState& ui, GraphNode* n, const NodeBox& box
     n->y += d.y;
   }
 
+  float contentY = box.min.y + kTitleH + 4;
+  float bh = bannerFrameH(n);
+  if (bh > 0.0f) {
+    const icons::Banner& img = icons::banner(n->fx->banner());
+    ImVec2 a(box.min.x + 7, contentY);
+    ImVec2 b(a.x + kNodeW - 14, a.y + bh);
+    dl->AddImage(img.tex, ImVec2(a.x + 2, a.y + 2), ImVec2(b.x - 2, b.y - 2));
+    if (bypassed)
+      dl->AddRectFilled(ImVec2(a.x + 2, a.y + 2), ImVec2(b.x - 2, b.y - 2),
+                        IM_COL32(192, 192, 192, 160));
+    w98::sunken(dl, a, b);
+    contentY = b.y + 4;
+  }
+
   if (!n->isIo() && !n->fx->params().empty()) {
-    ImGui::SetCursorScreenPos(ImVec2(box.min.x + 7, box.min.y + kTitleH + 4));
-    ImGui::BeginChild("body", ImVec2(kNodeW - 14, box.max.y - box.min.y - kTitleH - 8), false);
+    ImGui::SetCursorScreenPos(ImVec2(box.min.x + 7, contentY));
+    ImGui::BeginChild("body", ImVec2(kNodeW - 14, box.max.y - contentY - 4), false);
     auto& params = n->fx->params();
     for (int pi = 0; pi < (int)params.size(); pi++) {
       const Param& pr = params[pi];
@@ -1665,6 +1723,58 @@ void drawToolbar(ImVec2 pos, float w, AudioEngine& engine, UiState& ui) {
   volControl("##invol", "In", &ui.inVol, &AudioEngine::setInputGain);
   volControl("##outvol", "Out", &ui.outVol, &AudioEngine::setOutputGain);
 
+  vsep(x);
+  x += 8.0f;
+
+  // output level meter: left/right peak bars on a dB scale, green/yellow/red leds.
+  // peak >= 1.0 latches the red segments for a moment so clipping stays visible.
+  {
+    const float mw = 96.0f, mh = 8.0f, gap = 2.0f;
+    float dt = ImGui::GetIO().DeltaTime;
+    float top = midY - mh - gap * 0.5f;
+
+    ImGui::SetCursorScreenPos(ImVec2(x, top));
+    ImGui::InvisibleButton("##vu", ImVec2(mw, mh * 2.0f + gap));
+    tip("Output level (L/R) - red means clipping");
+
+    for (int ch = 0; ch < 2; ch++) {
+      float peak = ui.running ? engine.outPeak(ch) : 0.0f;
+      float t = 0.0f;
+      if (peak > 0.0001f) {
+        float db = 20.0f * log10f(peak);
+        t = (db + 48.0f) / 48.0f;
+        if (t < 0.0f) t = 0.0f;
+        if (t > 1.0f) t = 1.0f;
+      }
+      float fall = ui.vuLevel[ch] - 1.6f * dt;
+      ui.vuLevel[ch] = t > fall ? t : fall;
+      if (peak >= 1.0f)
+        ui.vuClip[ch] = 1.2f;
+      else if (ui.vuClip[ch] > 0.0f)
+        ui.vuClip[ch] -= dt;
+
+      ImVec2 ma(x, top + ch * (mh + gap)), mb(x + mw, ma.y + mh);
+      dl->AddRectFilled(ma, mb, w98::kBlack);
+      w98::sunken(dl, ma, mb);
+      const int segs = 22;
+      float segW = (mw - 4.0f) / (float)segs;
+      for (int i = 0; i < segs; i++) {
+        float f0 = (float)i / segs, f1 = (float)(i + 1) / segs;
+        bool lit = ui.vuLevel[ch] >= f1 || (ui.vuClip[ch] > 0.0f && f0 >= 0.9f);
+        ImU32 col;
+        if (f1 <= 0.7f)
+          col = lit ? IM_COL32(0, 200, 0, 255) : IM_COL32(0, 72, 0, 255);
+        else if (f1 <= 0.9f)
+          col = lit ? IM_COL32(224, 208, 0, 255) : IM_COL32(80, 72, 0, 255);
+        else
+          col = lit ? IM_COL32(224, 0, 0, 255) : IM_COL32(80, 0, 0, 255);
+        float sx = ma.x + 2.0f + i * segW;
+        dl->AddRectFilled(ImVec2(sx, ma.y + 2.0f), ImVec2(sx + segW - 1.0f, mb.y - 2.0f), col);
+      }
+    }
+    x += mw + 8.0f;
+  }
+
   // global bypass, pinned right
   const float bypW = 72.0f;
   float bypX = b.x - 6.0f - bypW;
@@ -1738,7 +1848,7 @@ void drawMain(AudioEngine& engine, UiState& ui) {
 
   ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
   ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-  bool open = ImGui::Begin("guitarpedal", nullptr, flags);
+  bool open = ImGui::Begin("modul8", nullptr, flags);
   ImGui::PopStyleVar(2);
   if (!open) {
     ImGui::End();
@@ -1779,17 +1889,23 @@ namespace gui {
 
 int run(AudioEngine& engine) {
   WNDCLASSEXW wc = {sizeof(wc), CS_CLASSDC, wndProc, 0, 0, ::GetModuleHandle(nullptr),
-                    nullptr, nullptr, nullptr, nullptr, L"guitarpedal", nullptr};
+                    nullptr, nullptr, nullptr, nullptr, L"modul8", nullptr};
   ::RegisterClassExW(&wc);
   // WS_POPUP drops the overlapped frame; WS_THICKFRAME/WS_CAPTION keep native resize,
   // snap, drop shadow and min/max animations while WM_NCCALCSIZE hides the visual frame.
   DWORD winStyle = WS_POPUP | WS_THICKFRAME | WS_CAPTION | WS_SYSMENU | WS_MAXIMIZEBOX |
                    WS_MINIMIZEBOX;
-  g_hwnd = ::CreateWindowW(wc.lpszClassName, L"guitarpedal", winStyle, 100, 100, 720, 560, nullptr,
+  g_hwnd = ::CreateWindowW(wc.lpszClassName, L"Modul8", winStyle, 100, 100, 720, 560, nullptr,
                            nullptr, wc.hInstance, nullptr);
   // force WM_NCCALCSIZE to re-run so the frame is stripped before the window is shown.
   ::SetWindowPos(g_hwnd, nullptr, 0, 0, 0, 0,
                  SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+
+  // taskbar / alt-tab icon; the window stays on the default icon if the file is missing.
+  if (HICON icoBig = icons::loadIconFile("assets/icon.jpg", 32))
+    ::SendMessage(g_hwnd, WM_SETICON, ICON_BIG, (LPARAM)icoBig);
+  if (HICON icoSmall = icons::loadIconFile("assets/icon.jpg", 16))
+    ::SendMessage(g_hwnd, WM_SETICON, ICON_SMALL, (LPARAM)icoSmall);
 
   if (!createDevice(g_hwnd)) {
     cleanupDevice();

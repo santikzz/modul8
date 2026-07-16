@@ -27,6 +27,9 @@ public:
   virtual void process(float* buffer, int numFrames) = 0;
   virtual const char* name() const = 0;
 
+  // optional image file shown on the node card above the knobs; null = none.
+  virtual const char* banner() const { return nullptr; }
+
   // params declared in the constructor via param(); read-only view for the ui.
   const std::vector<Param>& params() const { return params_; }
 

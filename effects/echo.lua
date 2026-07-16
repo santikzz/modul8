@@ -1,6 +1,7 @@
 -- single-tap feedback delay. the line is sized for the longest delay in
 -- prepare; process only reads/writes it, so nothing allocates per block.
 name = "echo"
+banner = "assets/echo.jpg"
 params = {
   { name = "time",     min = 20, max = 1000, default = 300 },
   { name = "feedback", min = 0,  max = 0.95, default = 0.4 },

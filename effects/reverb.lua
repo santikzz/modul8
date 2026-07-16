@@ -1,6 +1,7 @@
 -- small schroeder reverb: 4 parallel comb filters into 2 series allpass
 -- filters. freeverb tunings in samples @44.1k, scaled to the actual rate.
 name = "reverb"
+banner = "assets/reverb.jpg"
 params = {
   { name = "mix",   min = 0, max = 1,    default = 0.3 },
   { name = "decay", min = 0, max = 0.95, default = 0.84 },

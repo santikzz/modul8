@@ -1,5 +1,6 @@
 -- lua effect script. contract:
 --   name    = unique effect name (string, required)
+--   banner  = optional image (jpg/png/bmp) shown on the node, e.g. "assets/fuzz.jpg"
 --   params  = list of { name, min, max, default, kind = "float"|"int"|"bool" }
 --   prepare(sampleRate, maxBlock)  optional, called before the stream starts
 --   process(buf, n, p)             required, buf is a float* (0-indexed!), n is

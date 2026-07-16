@@ -1,4 +1,5 @@
 name = "bitcrusher"
+banner = "assets/bitcrusher.jpg"
 params = {
   { name = "bits",       min = 2, max = 16, default = 8, kind = "int" },
   { name = "downsample", min = 1, max = 16, default = 4, kind = "int" },

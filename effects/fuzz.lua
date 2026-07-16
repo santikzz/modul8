@@ -1,6 +1,7 @@
 -- asymmetric hard clipping: gnarlier and buzzier than the tanh distortion, and
 -- the uneven clip points add even harmonics for that classic fuzz voice.
 name = "fuzz"
+banner = "assets/fuzz.jpg"
 params = {
   { name = "drive", min = 1, max = 100, default = 20 },
   { name = "level", min = 0, max = 1,   default = 0.6 },

@@ -29,6 +29,8 @@ int AudioEngine::callback(void* outputBuffer, void* inputBuffer, unsigned int nF
 
   if (!p || !in || nFrames > e->bufferFrames_) {
     std::memset(out, 0, nFrames * oc * sizeof(float));
+    e->outPeak_[0].store(0.0f, std::memory_order_relaxed);
+    e->outPeak_[1].store(0.0f, std::memory_order_relaxed);
     e->hazard_.store(nullptr, std::memory_order_release);
     return 0;
   }
@@ -58,8 +60,18 @@ int AudioEngine::callback(void* outputBuffer, void* inputBuffer, unsigned int nF
   }
 
   float outGain = e->outGain_.load(std::memory_order_relaxed);
-  for (unsigned int i = 0; i < nFrames; i++)
-    for (unsigned int c = 0; c < oc; c++) out[i * oc + c] = obuf[i] * outGain;
+  float peak[2] = {0.0f, 0.0f};
+  for (unsigned int i = 0; i < nFrames; i++) {
+    for (unsigned int c = 0; c < oc; c++) {
+      float s = obuf[i] * outGain;
+      out[i * oc + c] = s;
+      float mag = s < 0.0f ? -s : s;
+      if (mag > peak[c & 1]) peak[c & 1] = mag;
+    }
+  }
+  if (oc == 1) peak[1] = peak[0];
+  e->outPeak_[0].store(peak[0], std::memory_order_relaxed);
+  e->outPeak_[1].store(peak[1], std::memory_order_relaxed);
 
   e->hazard_.store(nullptr, std::memory_order_release);
   return 0;
@@ -126,6 +138,8 @@ bool AudioEngine::start(unsigned int inId, unsigned int outId, Graph& graph,
 
 void AudioEngine::stop() {
   running_.store(false, std::memory_order_release);
+  outPeak_[0].store(0.0f, std::memory_order_relaxed);
+  outPeak_[1].store(0.0f, std::memory_order_relaxed);
   if (audio.isStreamRunning()) audio.stopStream();
   if (audio.isStreamOpen()) audio.closeStream();
 }

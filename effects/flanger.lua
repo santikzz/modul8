@@ -1,6 +1,7 @@
 -- short lfo-swept delay with feedback. the moving delay line, mixed back with
 -- the dry signal, sweeps a comb filter across the spectrum for the whoosh.
 name = "flanger"
+banner = "assets/flanger.jpg"
 params = {
   { name = "rate",     min = 0.05, max = 5,   default = 0.3 },
   { name = "depth",    min = 0,    max = 1,   default = 0.7 },

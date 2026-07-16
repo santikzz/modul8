@@ -1,6 +1,7 @@
 -- peak-follower gate: opens fast when the signal crosses the threshold and
 -- closes over the release time. the applied gain is smoothed so it does not click.
 name = "noise gate"
+banner = "assets/noisegate.jpg"
 params = {
   { name = "threshold", min = 0,  max = 0.3,  default = 0.02 },
   { name = "release",   min = 10, max = 1000, default = 200 },

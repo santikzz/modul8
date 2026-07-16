@@ -17,7 +17,7 @@ namespace {
 
 const char* kFolder = "presets";
 const char* kExt = ".preset";
-const char* kMagic = "guitarpedal-preset";
+const char* kMagic = "modul8-preset";
 
 std::string path(const std::string& name) { return dir() + "\\" + name + kExt; }
 

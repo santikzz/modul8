@@ -64,6 +64,9 @@ public:
   unsigned int sampleRate() const { return sampleRate_; }
   unsigned int bufferFrames() const { return bufferFrames_; }
   unsigned int xruns() const { return xruns_.load(); }
+  // peak |sample| of the last rendered block, post output gain. 1.0 = clipping.
+  // ch 0 = left, 1 = right; a mono output reports the same value on both.
+  float outPeak(int ch) const { return outPeak_[ch & 1].load(std::memory_order_relaxed); }
 
 private:
   static int callback(void* outputBuffer, void* inputBuffer, unsigned int nFrames,
@@ -79,6 +82,7 @@ private:
   std::atomic<float> inGain_{1.0f};
   std::atomic<float> outGain_{1.0f};
   std::atomic<bool> bypassAll_{false};
+  std::atomic<float> outPeak_[2]{0.0f, 0.0f};
   unsigned int sampleRate_ = 48000;
   unsigned int bufferFrames_ = 256;
   unsigned int inChannels_ = 1;

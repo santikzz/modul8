@@ -4,7 +4,7 @@
 #include <string>
 
 // plain key=value file next to the working dir. simple on purpose.
-static const char* kPath = "guitarpedal.cfg";
+static const char* kPath = "modul8.cfg";
 
 Config config::load() {
   Config c;

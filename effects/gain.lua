@@ -1,4 +1,5 @@
 name = "gain"
+banner = "assets/gain.jpg"
 params = {
   { name = "gain", min = 0, max = 2, default = 0.8 },
 }

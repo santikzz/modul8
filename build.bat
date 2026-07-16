@@ -18,6 +18,6 @@ if "%MSBUILD%"=="" (
     exit /b 1
 )
 
-echo building guitarpedal [%CONFIG%^|%PLATFORM%]
-"%MSBUILD%" guitarpedal.sln /nologo /m /p:Configuration=%CONFIG% /p:Platform=%PLATFORM%
+echo building modul8 [%CONFIG%^|%PLATFORM%]
+"%MSBUILD%" modul8.sln /nologo /m /p:Configuration=%CONFIG% /p:Platform=%PLATFORM%
 exit /b %ERRORLEVEL%

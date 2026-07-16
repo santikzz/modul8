@@ -1,4 +1,5 @@
 name = "distortion"
+banner = "assets/distortion.jpg"
 params = {
   { name = "drive", min = 1, max = 50, default = 8 },
 }
