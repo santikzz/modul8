@@ -1,3 +1,4 @@
+#include <atomic>
 #include <vector>
 
 #include "effect.h"
@@ -41,6 +42,11 @@ private:
 
 class Reverb : public Effect {
 public:
+  Reverb() {
+    param("mix", &mix, 0.0f, 1.0f);
+    param("decay", &feedback, 0.0f, 0.95f);
+  }
+
   void prepare(double sampleRate, int) override {
     // freeverb tunings in samples @44.1k, scaled to the actual sample rate
     const double scale = sampleRate / 44100.0;
@@ -51,13 +57,15 @@ public:
   }
 
   void process(float* buffer, int numFrames) override {
+    float fb = feedback.load(std::memory_order_relaxed);
+    float mx = mix.load(std::memory_order_relaxed);
     for (int n = 0; n < numFrames; n++) {
       float x = buffer[n];
       float wet = 0.0f;
-      for (int i = 0; i < 4; i++) wet += combs[i].process(x, feedback);
+      for (int i = 0; i < 4; i++) wet += combs[i].process(x, fb);
       wet *= 0.25f;
       for (int i = 0; i < 2; i++) wet = allpasses[i].process(wet, 0.5f);
-      buffer[n] = x * (1.0f - mix) + wet * mix;
+      buffer[n] = x * (1.0f - mx) + wet * mx;
     }
   }
 
@@ -66,8 +74,8 @@ public:
 private:
   Comb combs[4];
   Allpass allpasses[2];
-  float feedback = 0.84f;
-  float mix = 0.3f;
+  std::atomic<float> feedback{0.84f};
+  std::atomic<float> mix{0.3f};
 };
 
 REGISTER_EFFECT(Reverb, "reverb")

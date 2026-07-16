@@ -30,13 +30,34 @@
     <ClCompile Include="src\gui.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\graph.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\icons.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\preset.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="src\Registry.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\effects\Distortion.cpp">
       <Filter>Source Files\effects</Filter>
     </ClCompile>
+    <ClCompile Include="src\effects\Echo.cpp">
+      <Filter>Source Files\effects</Filter>
+    </ClCompile>
+    <ClCompile Include="src\effects\Flanger.cpp">
+      <Filter>Source Files\effects</Filter>
+    </ClCompile>
+    <ClCompile Include="src\effects\Fuzz.cpp">
+      <Filter>Source Files\effects</Filter>
+    </ClCompile>
     <ClCompile Include="src\effects\Gain.cpp">
+      <Filter>Source Files\effects</Filter>
+    </ClCompile>
+    <ClCompile Include="src\effects\NoiseGate.cpp">
       <Filter>Source Files\effects</Filter>
     </ClCompile>
     <ClCompile Include="src\effects\Reverb.cpp">
@@ -60,6 +81,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\gui.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\graph.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\icons.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\preset.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Registry.h">

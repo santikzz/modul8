@@ -2,36 +2,78 @@
 
 #include <cstring>
 #include <iostream>
+#include <thread>
 
-#include "registry.h"
+#include "graph.h"
 
-AudioEngine::~AudioEngine() { stop(); }
+AudioEngine::~AudioEngine() {
+  stop();
+  delete active_.exchange(nullptr);
+}
 
 int AudioEngine::callback(void* outputBuffer, void* inputBuffer, unsigned int nFrames,
-                          double /*streamTime*/, RtAudioStreamStatus status,
-                          void* userData) {
-  auto* state = static_cast<State*>(userData);
+                          double /*streamTime*/, RtAudioStreamStatus status, void* userData) {
+  auto* e = static_cast<AudioEngine*>(userData);
   auto* out = static_cast<float*>(outputBuffer);
   auto* in = static_cast<float*>(inputBuffer);
+  unsigned int oc = e->outChannels_, ic = e->inChannels_;
 
-  if (status) state->xruns++;
+  if (status) e->xruns_++;
 
-  if (!in || nFrames > state->mono.size()) {
-    std::memset(out, 0, nFrames * state->outChannels * sizeof(float));
+  // publish the plan we are about to read so the ui thread cannot free it under us.
+  RenderPlan* p;
+  do {
+    p = e->active_.load(std::memory_order_acquire);
+    e->hazard_.store(p, std::memory_order_release);
+  } while (p != e->active_.load(std::memory_order_acquire));
+
+  if (!p || !in || nFrames > e->bufferFrames_) {
+    std::memset(out, 0, nFrames * oc * sizeof(float));
+    e->hazard_.store(nullptr, std::memory_order_release);
     return 0;
   }
 
-  float* mono = state->mono.data();
+  float inGain = e->inGain_.load(std::memory_order_relaxed);
+  float* inbuf = p->buffers[p->inputBuf].data();
+  for (unsigned int i = 0; i < nFrames; i++) inbuf[i] = in[i * ic] * inGain;
+
+  float* obuf = inbuf;  // global bypass routes the dry input straight through
+  if (!e->bypassAll_.load(std::memory_order_relaxed)) {
+    for (auto& s : p->steps) {
+      float* buf = p->buffers[s.outBuf].data();
+      if (s.inputs.empty()) {
+        if (s.outBuf != p->inputBuf) std::memset(buf, 0, nFrames * sizeof(float));
+      } else {
+        const float* first = p->buffers[s.inputs[0]].data();
+        for (unsigned int i = 0; i < nFrames; i++) buf[i] = first[i];
+        for (size_t k = 1; k < s.inputs.size(); k++) {
+          const float* src = p->buffers[s.inputs[k]].data();
+          for (unsigned int i = 0; i < nFrames; i++) buf[i] += src[i];
+        }
+      }
+      bool bypass = s.bypass && s.bypass->load(std::memory_order_relaxed);
+      if (s.fx && !bypass) s.fx->process(buf, (int)nFrames);
+    }
+    obuf = p->buffers[p->outputBuf].data();
+  }
+
+  float outGain = e->outGain_.load(std::memory_order_relaxed);
   for (unsigned int i = 0; i < nFrames; i++)
-    mono[i] = in[i * state->inChannels];
+    for (unsigned int c = 0; c < oc; c++) out[i * oc + c] = obuf[i] * outGain;
 
-  for (auto& fx : state->chain) fx->process(mono, (int)nFrames);
-
-  for (unsigned int i = 0; i < nFrames; i++)
-    for (unsigned int c = 0; c < state->outChannels; c++)
-      out[i * state->outChannels + c] = mono[i];
-
+  e->hazard_.store(nullptr, std::memory_order_release);
   return 0;
+}
+
+void AudioEngine::swapPlan(std::unique_ptr<RenderPlan> plan) {
+  RenderPlan* raw = plan.release();
+  RenderPlan* old = active_.exchange(raw, std::memory_order_acq_rel);
+  if (!old) return;
+  // wait out any callback still inside the old plan, then free it on this thread.
+  while (running_.load(std::memory_order_acquire) &&
+         hazard_.load(std::memory_order_acquire) == old)
+    std::this_thread::yield();
+  delete old;
 }
 
 std::vector<AudioDevice> AudioEngine::devices(bool wantInput) {
@@ -46,30 +88,17 @@ std::vector<AudioDevice> AudioEngine::devices(bool wantInput) {
   return out;
 }
 
-void AudioEngine::setChain(const std::vector<std::string>& names,
-                           std::vector<std::string>& unknown) {
-  state.chain.clear();
-  for (auto& n : names) {
-    auto fx = Registry::create(n);
-    if (!fx) {
-      unknown.push_back(n);
-      continue;
-    }
-    state.chain.push_back(std::move(fx));
-  }
-}
-
-bool AudioEngine::start(unsigned int inId, unsigned int outId, unsigned int sampleRate,
-                        unsigned int bufferFrames) {
+bool AudioEngine::start(unsigned int inId, unsigned int outId, Graph& graph,
+                        unsigned int sampleRate, unsigned int bufferFrames) {
   RtAudio::DeviceInfo outInfo = audio.getDeviceInfo(outId);
-  state.inChannels = 1;  // guitar is mono
-  state.outChannels = outInfo.outputChannels >= 2 ? 2 : 1;
+  inChannels_ = 1;  // guitar is mono
+  outChannels_ = outInfo.outputChannels >= 2 ? 2 : 1;
 
   RtAudio::StreamParameters oParams, iParams;
   oParams.deviceId = outId;
-  oParams.nChannels = state.outChannels;
+  oParams.nChannels = outChannels_;
   iParams.deviceId = inId;
-  iParams.nChannels = state.inChannels;
+  iParams.nChannels = inChannels_;
 
   sampleRate_ = sampleRate;
   bufferFrames_ = bufferFrames;  // ~5ms @48k; lower = less latency, more risk
@@ -78,29 +107,25 @@ bool AudioEngine::start(unsigned int inId, unsigned int outId, unsigned int samp
   options.flags = RTAUDIO_MINIMIZE_LATENCY;
 
   if (audio.openStream(&oParams, &iParams, RTAUDIO_FLOAT32, sampleRate_, &bufferFrames_,
-                       &callback, &state, &options)) {
+                       &callback, this, &options)) {
     std::cerr << audio.getErrorText() << "\n";
     return false;
   }
 
-  // openStream may have adjusted bufferFrames_; size scratch + prepare effects now.
-  state.mono.assign(bufferFrames_, 0.0f);
-  for (auto& fx : state.chain) fx->prepare(sampleRate_, (int)bufferFrames_);
+  // openStream may have adjusted bufferFrames_; prepare + build the plan to match.
+  graph.prepareAll(sampleRate_, (int)bufferFrames_);
+  swapPlan(graph.buildPlan((int)bufferFrames_));
 
   if (audio.startStream()) {
     std::cerr << audio.getErrorText() << "\n";
     return false;
   }
+  running_.store(true, std::memory_order_release);
   return true;
 }
 
 void AudioEngine::stop() {
+  running_.store(false, std::memory_order_release);
   if (audio.isStreamRunning()) audio.stopStream();
   if (audio.isStreamOpen()) audio.closeStream();
-}
-
-std::vector<std::string> AudioEngine::chainNames() const {
-  std::vector<std::string> out;
-  for (auto& fx : state.chain) out.push_back(fx->name());
-  return out;
 }

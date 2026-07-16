@@ -145,9 +145,16 @@
     <ClCompile Include="src\console_ui.cpp" />
     <ClCompile Include="src\config.cpp" />
     <ClCompile Include="src\gui.cpp" />
+    <ClCompile Include="src\graph.cpp" />
+    <ClCompile Include="src\icons.cpp" />
+    <ClCompile Include="src\preset.cpp" />
     <ClCompile Include="src\Registry.cpp" />
     <ClCompile Include="src\effects\Distortion.cpp" />
+    <ClCompile Include="src\effects\Echo.cpp" />
+    <ClCompile Include="src\effects\Flanger.cpp" />
+    <ClCompile Include="src\effects\Fuzz.cpp" />
     <ClCompile Include="src\effects\Gain.cpp" />
+    <ClCompile Include="src\effects\NoiseGate.cpp" />
     <ClCompile Include="src\effects\Reverb.cpp" />
     <ClCompile Include="third_party\rtaudio\RtAudio.cpp" />
   </ItemGroup>
@@ -157,6 +164,9 @@
     <ClInclude Include="src\console_ui.h" />
     <ClInclude Include="src\config.h" />
     <ClInclude Include="src\gui.h" />
+    <ClInclude Include="src\graph.h" />
+    <ClInclude Include="src\icons.h" />
+    <ClInclude Include="src\preset.h" />
     <ClInclude Include="src\Registry.h" />
     <ClInclude Include="third_party\rtaudio\RtAudio.h" />
   </ItemGroup>
