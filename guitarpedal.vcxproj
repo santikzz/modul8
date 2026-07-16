@@ -112,13 +112,16 @@
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>__WINDOWS_WASAPI__;_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)src;$(ProjectDir)third_party\rtaudio;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)src;$(ProjectDir)third_party\rtaudio;$(ProjectDir)third_party\luajit\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>ole32.lib;d3d11.lib;dxgi.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ole32.lib;d3d11.lib;dxgi.lib;d3dcompiler.lib;$(ProjectDir)third_party\luajit\src\lua51.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy /y /d "$(ProjectDir)third_party\luajit\src\lua51.dll" "$(OutDir)" &gt;nul</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -128,15 +131,19 @@
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>__WINDOWS_WASAPI__;_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)src;$(ProjectDir)third_party\rtaudio;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)src;$(ProjectDir)third_party\rtaudio;$(ProjectDir)third_party\luajit\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>ole32.lib;d3d11.lib;dxgi.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ole32.lib;d3d11.lib;dxgi.lib;d3dcompiler.lib;$(ProjectDir)third_party\luajit\src\lua51.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy /y /d "$(ProjectDir)third_party\luajit\src\lua51.dll" "$(OutDir)" &gt;nul
+if exist "$(ProjectDir)effects" xcopy /y /d /i "$(ProjectDir)effects\*.lua" "$(OutDir)effects\" &gt;nul</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
 
   <ItemGroup>
@@ -147,15 +154,9 @@
     <ClCompile Include="src\gui.cpp" />
     <ClCompile Include="src\graph.cpp" />
     <ClCompile Include="src\icons.cpp" />
+    <ClCompile Include="src\lua_effect.cpp" />
     <ClCompile Include="src\preset.cpp" />
     <ClCompile Include="src\Registry.cpp" />
-    <ClCompile Include="src\effects\Distortion.cpp" />
-    <ClCompile Include="src\effects\Echo.cpp" />
-    <ClCompile Include="src\effects\Flanger.cpp" />
-    <ClCompile Include="src\effects\Fuzz.cpp" />
-    <ClCompile Include="src\effects\Gain.cpp" />
-    <ClCompile Include="src\effects\NoiseGate.cpp" />
-    <ClCompile Include="src\effects\Reverb.cpp" />
     <ClCompile Include="third_party\rtaudio\RtAudio.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -166,6 +167,7 @@
     <ClInclude Include="src\gui.h" />
     <ClInclude Include="src\graph.h" />
     <ClInclude Include="src\icons.h" />
+    <ClInclude Include="src\lua_effect.h" />
     <ClInclude Include="src\preset.h" />
     <ClInclude Include="src\Registry.h" />
     <ClInclude Include="third_party\rtaudio\RtAudio.h" />

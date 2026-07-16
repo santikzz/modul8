@@ -2,6 +2,7 @@
 
 #include "audio.h"
 #include "gui.h"
+#include "lua_effect.h"
 
 int main() {
   AudioEngine engine;
@@ -9,5 +10,6 @@ int main() {
     std::cerr << "no audio devices found\n";
     return 1;
   }
+  for (const auto& err : luafx::registerAll()) std::cerr << "[lua] " << err << "\n";
   return gui::run(engine);
 }

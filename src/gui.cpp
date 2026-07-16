@@ -20,6 +20,7 @@
 #include "config.h"
 #include "graph.h"
 #include "icons.h"
+#include "lua_effect.h"
 #include "preset.h"
 #include "registry.h"
 
@@ -1055,6 +1056,15 @@ void drawMenuBar(ImVec2 pos, float w, UiState& ui) {
       w98::raised(pdl, wp, ImVec2(wp.x + ws.x, wp.y + ws.y));
       switch (i) {
         case 0:
+          if (w98::menuItem("Reload Lua Effects")) {
+            auto errors = luafx::registerAll();
+            ui.available = Registry::names();
+            ui.status = errors.empty()
+                            ? "lua effects reloaded"
+                            : "lua load error: " + errors.front();
+          }
+          if (w98::menuItem("Open Effects Folder"))
+            ::ShellExecuteA(nullptr, "open", luafx::dir().c_str(), nullptr, nullptr, SW_SHOWNORMAL);
           if (w98::menuItem("Close")) ::PostMessage(g_hwnd, WM_CLOSE, 0, 0);
           break;
         case 1:

@@ -4,9 +4,6 @@
     <Filter Include="Source Files">
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\effects">
-      <UniqueIdentifier>{a1b2c3d4-1111-2222-3333-444455556666}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Header Files">
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
     </Filter>
@@ -36,32 +33,14 @@
     <ClCompile Include="src\icons.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\lua_effect.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="src\preset.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Registry.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\effects\Distortion.cpp">
-      <Filter>Source Files\effects</Filter>
-    </ClCompile>
-    <ClCompile Include="src\effects\Echo.cpp">
-      <Filter>Source Files\effects</Filter>
-    </ClCompile>
-    <ClCompile Include="src\effects\Flanger.cpp">
-      <Filter>Source Files\effects</Filter>
-    </ClCompile>
-    <ClCompile Include="src\effects\Fuzz.cpp">
-      <Filter>Source Files\effects</Filter>
-    </ClCompile>
-    <ClCompile Include="src\effects\Gain.cpp">
-      <Filter>Source Files\effects</Filter>
-    </ClCompile>
-    <ClCompile Include="src\effects\NoiseGate.cpp">
-      <Filter>Source Files\effects</Filter>
-    </ClCompile>
-    <ClCompile Include="src\effects\Reverb.cpp">
-      <Filter>Source Files\effects</Filter>
     </ClCompile>
     <ClCompile Include="third_party\rtaudio\RtAudio.cpp">
       <Filter>third_party</Filter>
@@ -87,6 +66,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\icons.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lua_effect.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\preset.h">
