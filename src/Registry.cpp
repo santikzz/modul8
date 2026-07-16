@@ -1,4 +1,4 @@
-#include "Registry.h"
+#include "registry.h"
 
 // function-local static avoids static init order problems: the map is built
 // on first REGISTER_EFFECT call, whatever order the effect files init in.

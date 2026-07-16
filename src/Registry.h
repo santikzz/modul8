@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-#include "Effect.h"
+#include "effect.h"
 
 using EffectFactory = std::function<std::unique_ptr<Effect>()>;
 

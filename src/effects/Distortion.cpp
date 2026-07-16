@@ -1,7 +1,7 @@
 #include <cmath>
 
-#include "Effect.h"
-#include "Registry.h"
+#include "effect.h"
+#include "registry.h"
 
 class Distortion : public Effect {
 public:

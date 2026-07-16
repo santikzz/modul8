@@ -1,7 +1,7 @@
 #include <vector>
 
-#include "Effect.h"
-#include "Registry.h"
+#include "effect.h"
+#include "registry.h"
 
 // small schroeder reverb: 4 parallel comb filters into 2 series allpass filters.
 namespace {

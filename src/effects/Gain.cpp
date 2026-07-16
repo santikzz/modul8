@@ -1,5 +1,5 @@
-#include "Effect.h"
-#include "Registry.h"
+#include "effect.h"
+#include "registry.h"
 
 class Gain : public Effect {
 public:
