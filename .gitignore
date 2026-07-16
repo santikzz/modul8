@@ -1,0 +1,28 @@
+# build output
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+Win32/
+*.exe
+*.dll
+*.lib
+*.pdb
+*.ilk
+*.exp
+*.obj
+*.log
+
+# visual studio
+.vs/
+*.user
+*.suo
+*.VC.db
+*.VC.opendb
+
+# cmake (if used later)
+build/
+CMakeCache.txt
+CMakeFiles/
